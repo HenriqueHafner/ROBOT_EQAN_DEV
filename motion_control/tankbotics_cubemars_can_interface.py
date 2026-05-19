@@ -409,6 +409,6 @@ def set_current_brake(can_bus, motor_id, current_a):
 
 def set_origin_ak70(bus, motor_id):
     send_motor_cmd_ak70(bus, motor_id, p_des=0.0, v_des=0.0, kp=0.0, kd=0.0, t_ff=0.0)
-    time.sleep(0.01)
+    time.sleep(0.1)
     msg = can.Message(arbitration_id=motor_id, data=[0xFF]*7 + [0xFE], is_extended_id=False)
     bus.send(msg)

@@ -1,0 +1,3 @@
+[submodule "tankbotics_ros2_manager"]
+	path = tankbotics_ros2_manager
+	url = https://bitbucket.org/on_dev/tankbotics_ros2_manager.git
