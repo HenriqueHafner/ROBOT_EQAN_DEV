@@ -57,12 +57,6 @@ class can_motor_interface:
         else:
             return None
 
-    def set_origin(self):
-        if self.joint_model == 1:
-            set_origin_ak70(self.bus, self.motor_id)
-        elif self.joint_model == 2:
-            set_origin_aka10(self.bus, self.motor_id)  
-
     def send_position_controll_command_arbitrary(self, position):
         p_des = position * self.orientation
         v_des = 0.0
@@ -317,13 +311,6 @@ def decode_motor_can_message_ak70(msg):
 def set_zero_torque_and_get_status_ak70(can_bus, motor_id, p_des=0.0, v_des=0.0, kp=0.0, kd=0.0, t_ff=0.0):
     return send_motor_cmd_ak70(can_bus, motor_id, p_des, v_des, kp, kd, t_ff)
 
-def set_origin_aka10(bus, motor_id, permanent=False):
-    can_id = (5 << 8) | motor_id  # Control Mode ID 5
-    origin_mode = 1 if permanent else 0
-    data = [origin_mode]  # Apenas 1 byte
-    msg = can.Message(arbitration_id=can_id, data=data, is_extended_id=True)
-    bus.send(msg)
-
 def set_position_velocity(can_bus, motor_id, position_deg, speed_erpm, accel_erpm2):
     # Converte posição em graus para protocolo (1° = 10000 unidades)
     pos_int = int(position_deg * 10000)
@@ -411,8 +398,21 @@ def set_current_brake(can_bus, motor_id, current_a):
         return motor_data
     return None
 
+def set_origin(self):
+    if self.joint_model == 1:
+        set_origin_ak70(self.bus, self.motor_id)
+    elif self.joint_model == 2:
+        set_origin_aka10(self.bus, self.motor_id)
+
 def set_origin_ak70(bus, motor_id):
     send_motor_cmd_ak70(bus, motor_id, p_des=0.0, v_des=0.0, kp=0.0, kd=0.0, t_ff=0.0)
     time.sleep(0.1)
     msg = can.Message(arbitration_id=motor_id, data=[0xFF]*7 + [0xFE], is_extended_id=False)
+    bus.send(msg)
+
+def set_origin_aka10(bus, motor_id, permanent=False):
+    can_id = (5 << 8) | motor_id  # Control Mode ID 5
+    origin_mode = 1 if permanent else 0
+    data = [origin_mode]  # Apenas 1 byte
+    msg = can.Message(arbitration_id=can_id, data=data, is_extended_id=True)
     bus.send(msg)

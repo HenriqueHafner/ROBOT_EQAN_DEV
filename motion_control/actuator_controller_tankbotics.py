@@ -58,7 +58,7 @@ class actuator_controller:
             print(feedback)
             if feedback[0]:
                 self.last_position_feedback = feedback[0]
-        if self.node.connected:
+        if self.node:
             self.node.write_socket_float(self.name, self.target_position)
         return True
 
@@ -90,7 +90,7 @@ class actuator_controller:
         if feedback is not False:
             if feedback[0]:
                 self.last_position_feedback = feedback[0]
-        if self.node.connected:
+        if self.node:
             self.node.write_socket_float(self.name, self.target_position)
         return True
     
@@ -105,7 +105,7 @@ class actuator_controller:
             if feedback[0]:
                 print(feedback)
                 self.last_position_feedback = feedback[0]
-        if self.node.connected:
+        if self.node:
             self.node.write_socket_float(self.name, self.target_position)
         return True
     
@@ -122,7 +122,7 @@ class actuator_controller:
                 self.last_position_feedback = feedback[0]
                 self.last_current_feedback = feedback[2]
                 print(f"current: {self.last_current_feedback:+.3f} A")
-        if self.node.connected:
+        if self.node:
             self.node.write_socket_float(self.name, self.target_position)
         return True
 
@@ -135,7 +135,7 @@ class actuator_controller:
         if feedback is not False:
             if feedback[0]:
                 self.last_position_feedback = feedback[0]
-        if self.node.connected:
+        if self.node:
             self.node.write_socket_float(self.name, self.target_position)
         return True
     
