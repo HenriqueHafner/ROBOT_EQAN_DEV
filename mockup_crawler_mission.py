@@ -22,7 +22,7 @@ import time
 
 from motion_control import actuator_controller_tankbotics
 from motion_control import tankbotics_cubemars_can_interface
-from intra_process_comumnication.intra_process_comunicator_client import client 
+from tankbotics_ros2_manager.intra_process_communication import node_client
 
 # ============================================================
 # CONFIGURAÇÃO DE TESTE
@@ -356,7 +356,7 @@ class MissionController:
 
         self.max_velocity = 1.0
 
-        self.tcp_node = client(IP_BASE_SERVER)
+        self.tcp_node = node_client.client(IP_BASE_SERVER)
 
         self.last_iteration_timestamp = time.monotonic()
 

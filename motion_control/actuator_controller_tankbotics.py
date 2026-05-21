@@ -1,15 +1,14 @@
 import time
 
 from motion_control import acceleration_planner
-from intra_process_comumnication import mock_ros_2_node
 
 class actuator_controller:
-    def __init__(self, model_name, identifier):
+    def __init__(self, model_name, identifier, node_client = None):
         self.model = model_name
         self.identifier = identifier
         self.name = "joint_"+str(identifier)
         self.interface = None # type: ignore
-        self.node = mock_ros_2_node.mock_ros_node_instance
+        self.node = node_client
         self.print_orders = True
         self.last_print_timestamp = time.time()
 
@@ -36,7 +35,7 @@ class actuator_controller:
 
     def set_resting_position(self):
         feedback_value = self.interface.set_zero_torque_and_get_position()
-        time.sleep(0.5)
+        time.sleep(0.1)
         feedback_value = self.interface.set_zero_torque_and_get_position()
         self.home_position = feedback_value
         self.target_position = feedback_value

@@ -2,9 +2,13 @@ import struct
 import time
 import math
 
-
-import can # type: ignore
-bus = can.interface.Bus(bustype="socketcan", channel="can0", bitrate=500000)
+try:
+    import can # type: ignore
+except:
+    print("[Warning] Can offline. Failed to import can module.")
+    can = None
+if can:
+    bus = can.interface.Bus(bustype="socketcan", channel="can0", bitrate=500000)
 
 class can_motor_interface:
     def __init__(self, joint_model, motor_id):
