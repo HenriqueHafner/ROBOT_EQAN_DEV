@@ -7,12 +7,11 @@ class actuator_controller:
         self.model = model_name
         self.identifier = identifier
         self.name = "joint_"+str(identifier)
-        self.interface = None # type: ignore
+        self.interface = None
         self.node = node_client
         self.print_orders = True
         self.last_print_timestamp = time.time()
 
-        # Motion Controll
         self.setup_done = False
         self.home_position = None
         self.last_position_feedback = 0.0
@@ -21,7 +20,8 @@ class actuator_controller:
         self.target_torque = None
         self.last_target_position = None
         self.target_current_break = None
-        # Manuever Controll
+        self.rest_offset = 0.0
+
         self.manuever_status = 0
         self.trajectory = [None]
         self.trajectory_step_index = 0
@@ -67,7 +67,6 @@ class actuator_controller:
         delta_time = current_timestamp - self.last_print_timestamp
         if self.print_orders and delta_time >= 0.5:
             formatted_position = f"{self.target_position:+.3f}"
-            #print(f"{self.interface.motor_id}: {formatted_position}")
             self.last_print_timestamp = current_timestamp
         return True
 
@@ -84,7 +83,6 @@ class actuator_controller:
         self.target_torque = target
 
     def send_torque_controll_target(self):
-        #self.print_target_position()
         feedback = self.interface.send_torque_controll_command(self.target_torque)
         self.last_target_position = self.target_position
         if feedback is not False:
@@ -93,7 +91,6 @@ class actuator_controller:
         if self.node:
             self.node.write_socket_float(self.name, self.target_position)
         return True
-    
 
     def set_velocity_controll_target(self, target):
         self.target_velocity = target
@@ -103,7 +100,6 @@ class actuator_controller:
         self.last_target_position = self.target_position
         if feedback is not False:
             if feedback[0]:
-                print(feedback)
                 self.last_position_feedback = feedback[0]
         if self.node:
             self.node.write_socket_float(self.name, self.target_position)
