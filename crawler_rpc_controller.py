@@ -87,6 +87,7 @@ class crawler_rpc_controller:
 
     def modify_offset_hold_position(self, wheel_name, delta):
         if abs(delta) >= self.maximum_offset:
+            print("Delta value exceeds maximum offset limit.")
             return
         if wheel_name == "left_rear":
             wheel = self.L_R
@@ -97,8 +98,10 @@ class crawler_rpc_controller:
         elif wheel_name == "right_front":
             wheel = self.R_F
         else:
+            print("Invalid wheel name provided.")
             return
         if abs(wheel.offset_hold_position) >= self.maximum_offset:
+            print("Current offset hold position exceeds maximum offset limit.")
             return
         wheel.target_position += delta
         wheel.offset_hold_position += delta
@@ -109,6 +112,7 @@ class crawler_rpc_controller:
 if __name__ == "__main__":
     crawler_rpc_controller_instance = crawler_rpc_controller(use_emulator=True)
     crawler_rpc_controller_instance.calculate_differential_position_targets(1.2, 0.2)
+    crawler_rpc_controller_instance.modify_offset_hold_position("left_rear", 0.5)
     crawler_rpc_controller_instance.set_position_targets_in_controllers()
     crawler_rpc_controller_instance.send_position_targets_to_interface()
     input()
