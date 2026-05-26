@@ -1,5 +1,3 @@
-import math
-
 from motion_control import actuator_controller_tankbotics
 from motion_control import tankbotics_cubemars_can_interface_emulator
 from motion_control import tankbotics_cubemars_can_interface
@@ -8,10 +6,10 @@ class crawler_rpc_controller:
     maximum_position = 35000.0
     maximum_electrical_rpm = 10000
     maximum_acceleration = 300000
-    maximum_position_step = math.radians(5.0)
+    maximum_position_step = 5.0
     linear_gain = 1.0
     rotational_gain = 1.0
-    maximum_offset = math.radians(5.0)
+    maximum_offset = 5.0
     L_R_rest_offset = 0.0
     L_F_rest_offset = 0.0
     R_R_rest_offset = 0.0

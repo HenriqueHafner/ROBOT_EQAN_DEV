@@ -7,7 +7,7 @@ class mission_controller:
     def __init__(self, use_emulator=True):
         self.crawler = crawler_rpc_controller(use_emulator=use_emulator)
         self.node_client = client()
-        self.current_state = "IDLE"
+        self.current_state = "ACTIVE"
         self.is_running = True
 
     def run(self):
@@ -31,7 +31,7 @@ class mission_controller:
     def iterate(self):
         if self.current_state == "ACTIVE":
             self.read_gamepad_and_set_velocity()
-            self.crawler.send_position_targets()
+            self.crawler.send_position_targets_to_interface()
             self.publish_telemetry()
 
     def axis_filter(self, raw_value):
@@ -43,11 +43,13 @@ class mission_controller:
         return sign * normalized
 
     def read_gamepad_and_set_velocity(self):
-        raw_linear = self.node_client.read_float("axis_name_1") or 0.0
-        raw_rotational = self.node_client.read_float("axis_name_2") or 0.0
+        # raw_linear = self.node_client.read_float("x_axis_2") or 0.0
+        # raw_rotational = self.node_client.read_float("x_axis_3") or 0.0
+        raw_linear = self.node_client.read_float("axis_2s") or 0.0
+        raw_rotational = self.node_client.read_float("axis_4s") or 0.0
         linear_velocity = self.axis_filter(raw_linear)
         rotational_velocity = self.axis_filter(raw_rotational)
-        self.crawler.set_differential_position_targets(linear_velocity, rotational_velocity)
+        self.crawler.calculate_differential_position_targets(linear_velocity, rotational_velocity)
 
     def publish_telemetry(self):
         wheels = {
@@ -60,6 +62,9 @@ class mission_controller:
             self.node_client.set_float(f"{name}_target_position", wheel.target_position)
             self.node_client.set_float(f"{name}_position", wheel.last_position_feedback)
             self.node_client.set_float(f"{name}_rest_offset", wheel.rest_offset)
+            self.node_client.set_float(f"{name}_current", wheel.last_current_feedback)
+            self.node_client.set_float(f"{name}_temperature", wheel.last_temperature_feedback)
+
 
     def shutdown(self):
         self.is_running = False

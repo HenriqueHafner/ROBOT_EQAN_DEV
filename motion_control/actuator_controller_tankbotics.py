@@ -3,6 +3,8 @@ import time
 from motion_control import acceleration_planner
 
 class actuator_controller:
+    aproximation_velocity  = 1.0
+    aproximation_acceleration = 1.0
     def __init__(self, model_name, identifier, node_client = None):
         self.model = model_name
         self.identifier = identifier
@@ -16,6 +18,7 @@ class actuator_controller:
         self.home_position = None
         self.last_position_feedback = 0.0
         self.last_current_feedback = 0.0
+        self.last_temperature_feedback = 0.0
         self.target_position = None
         self.target_torque = None
         self.last_target_position = None
@@ -111,13 +114,13 @@ class actuator_controller:
         self.target_accel = target_accel
 
     def send_position_velocity_controll_target(self):
-        feedback = self.interface.send_position_velocity_command(self.target_position, self.target_velocity, self.target_accel)
+        feedback = self.interface.send_position_velocity_command(self.target_position, self.aproximation_velocity, self.aproximation_acceleration)
         self.last_target_position = self.target_position
         if feedback:
             if feedback[0]:
                 self.last_position_feedback = feedback[0]
                 self.last_current_feedback = feedback[2]
-                print(f"current: {self.last_current_feedback:+.3f} A")
+                self.last_temperature_feedback = feedback[3]
         if self.node:
             self.node.write_socket_float(self.name, self.target_position)
         return True

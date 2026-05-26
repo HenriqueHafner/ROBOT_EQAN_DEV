@@ -1,6 +1,6 @@
 import time
 
-LOG_PERIOD = 0.05
+LOG_PERIOD = 1.0
 
 class can_motor_interface_emulator:
     def __init__(self, joint_model, motor_id):
