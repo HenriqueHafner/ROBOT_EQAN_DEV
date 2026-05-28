@@ -39,8 +39,8 @@ class gamepad_handler:
                         self.timestamp_state_last = time.monotonic()
                     if node:
                         for i, (name, value) in enumerate(self.gamepad_instance.get_named_state()):
-                            if i == 0:  # posição 0 = sempre botões
-                                byte_data = bools_to_3bytes(value)
+                            if i == 0:  # position [0] always buttons
+                                byte_data = bools_to_4bytes(value)
                                 node.send_server(name, byte_data)
                             else:
                                 node.set_float(name, value)
@@ -59,6 +59,11 @@ class gamepad_handler:
         else:
             self.binding_handler()
         return False
+
+    def set_topic_types(self):
+        if node:
+            name, value = self.gamepad_instance.get_named_state()[0]  # position [0] always buttons
+            node.topic_define_type(name, "bits")
 
     def setup_controller_by_name(self, gamepad_name=None):
         if gamepad_name:
@@ -86,6 +91,8 @@ class gamepad_handler:
             self.gamepad_instance = gamepad_instance
             self.joystick_online = self.gamepad_instance.online_satus
             if self.joystick_online:
+                self.loop_routine()  # Initial state update to ensure the first data is sent immediately after binding.
+                self.set_topic_types()
                 print("joystick binded.")
                 return True
             else:
@@ -104,11 +111,11 @@ class gamepad_handler:
         # Pendente implementação
         return True
 
-def bools_to_3bytes(bools_list):
-    if len(bools_list) > 24:
-        raise ValueError("bools_list larger than 24 elements, unable to pack in to 3 bytes.")
+def bools_to_4bytes(bools_list):
+    if len(bools_list) > 32:
+        raise ValueError("bools_list larger than 32 elements, unable to pack in to 4 bytes.")
     value = 0
     for i, bit in enumerate(bools_list):
         if bit:
             value |= 1 << i
-    return value.to_bytes(3, byteorder='little')
+    return value.to_bytes(4, byteorder='little')

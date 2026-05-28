@@ -166,55 +166,47 @@ class server:
 
     def print_variables(self):
         current_timestamp = time.monotonic()
-        if current_timestamp - self.print_last_timestamp >= self.print_interval:
-            time_cost_line = [("timecost(us)", self.time_cost)]
-            data = [(t.name, t) for t in self.topics.values()]
-            current_line_count = len(data+1) # +1 for time cost line
-            self.max_line_count = max(self.max_line_count, current_line_count)
-            lines = [time_cost_line]
-            for name, topic in data:
-                truncated_name = name[:16].ljust(16)
-                value = topic.value
-                topic_type = getattr(topic, 'type', 'float').strip().lower()
-                if topic_type == 'float':
-                    try:
-                        if isinstance(value, bytes) and len(value) == 4:
-                            fval = struct.unpack('f', value)[0]
-                        else:
-                            fval = float(value)
-                        formatted_value = self.formatFloat(fval)
-                    except:
-                        formatted_value = ' '.join(f'{b:02x}' for b in value) if isinstance(value, bytes) else str(value)
-                elif topic_type in ('int32', 'int', 'i32'):
-                    try:
-                        if isinstance(value, bytes):
-                            int_val = int.from_bytes(value, 'big')
-                        else:
-                            int_val = int(value)
-                        formatted_value = f"{int_val}"
-                    except:
-                        formatted_value = str(value)
-                elif topic_type in ('string', 'str'):
-                    try:
-                        formatted_value = value.decode('utf-8').strip()
-                    except:
-                        formatted_value = str(value)
-                else:
-                    if isinstance(value, bytes):
-                        formatted_value = ' '.join(f'{b:02x}' for b in value)
-                    else:
-                        formatted_value = str(value)
-                line = f"{truncated_name} : {formatted_value}"
-                lines.append(line)
-            lines += [""] * (self.max_line_count - current_line_count)
-            content_string = "\n".join(lines) + "\n" if lines else ""
-            sys.stdout.write("\033[H")
-            for _ in range(self.max_line_count):
-                sys.stdout.write("\033[2K\033[1B]")
-            sys.stdout.write("\033[H")
-            sys.stdout.write(content_string)
-            sys.stdout.flush()
-            self.print_last_timestamp = current_timestamp
+        if current_timestamp - self.print_last_timestamp < self.print_interval:
+            return
+
+        time_cost_line = f"timecost(us) : {self.time_cost:.1f}"
+        topic_lines = []
+
+        for topic in self.topics.values():
+            name = topic.name[:16].ljust(16)
+            value = topic.value
+            topic_type = getattr(topic, "type", "float").strip().lower()
+
+            if topic_type == "float":
+                fval = struct.unpack("f", value)[0]
+                formatted_value = self.formatFloat(fval)
+            elif topic_type in ("int32", "int", "i32"):
+                int_val = int.from_bytes(value, "big")
+                formatted_value = f"{int_val}"
+            elif topic_type in ("string", "str"):
+                formatted_value = value.decode("utf-8").strip()
+            elif topic_type in ("bits", "bit", "binary"):
+                            formatted_value = " ".join(f"{b:08b}" for b in value)
+            else:
+                formatted_value = " ".join(f"{b:02x}" for b in value)
+
+            topic_lines.append(f"{name} : {formatted_value}")
+
+        all_lines = [time_cost_line] + topic_lines
+
+        current_line_count = len(all_lines)
+        self.max_line_count = max(self.max_line_count, current_line_count)
+
+        while len(all_lines) < self.max_line_count:
+            all_lines.append("")
+
+        content_string = "\n".join(all_lines) + "\n"
+
+        sys.stdout.write("\033[H\033[J")
+        sys.stdout.write(content_string)
+        sys.stdout.flush()
+
+        self.print_last_timestamp = current_timestamp
 
     def loop(self):
         last_error_print = time.monotonic()
