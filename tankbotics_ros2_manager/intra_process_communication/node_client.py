@@ -144,11 +144,15 @@ class client:
                 pass
         return None
 
-    def modify_topic_property(self, variable_name: str, **kwargs):
-        # This method is a placeholder and does not have an implementation in the client.
-        # In a real implementation, this would send a command to the server to modify the topic properties.
-        return False
-    
+    def topic_define_type(self, variable_name, type_str):
+            if not self.connection_handler():
+                return False
+            name_bytes = variable_name.encode().ljust(32, b' ')
+            type_bytes = type_str.encode().ljust(16, b' ')
+            packet = b'T' + name_bytes + type_bytes
+            self.socket.sendall(packet)
+            return True
+
     def server_reachable(self, server_ip, server_port):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(1.0)
