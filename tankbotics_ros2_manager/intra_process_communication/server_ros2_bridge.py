@@ -4,14 +4,19 @@ import time
 import sys
 import math
 
+class Topic:
+    def __init__(self, name: str, topic_id: int, value: bytes = b'\x00\x00\x00\x00', type_str: str = "float"):
+        self.name = name
+        self.id = topic_id
+        self.value = value[:512]          # limite máximo
+        self.type = type_str[:16]
+
 class server:
     def __init__(self, ip=None):
-        if ip:
-            self.host = ip
-        else:
-            self.host = '0.0.0.0'
+        self.host = ip if ip else '0.0.0.0'
         self.port = 5007
-        self.variables = {}
+        self.topics = {}                  # name -> Topic
+        self.next_topic_id = 1000
         self.connections = []
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -19,13 +24,28 @@ class server:
         self.server_socket.listen(32)
         self.server_socket.setblocking(False)
         print(f"[rmock_server] listening on {self.host}:{self.port}")
+
         self.print_last_timestamp = time.monotonic()
         self.loop_last_timestamp = time.monotonic()
-        self.previousLineCount = 0
-        self.print_interval = 1.0 / 30
         self.loop_counter = 0
         self.time_cost = 0.0
         self.max_line_count = 1
+        self.print_interval = 1.0 / 30
+
+    def _get_or_create_topic(self, name: str, default_type: str = "float", default_value: bytes = b'\x00\x00\x00\x00') -> Topic:
+        """Substitui o antigo setdefault com lógica completa de criação."""
+        if name not in self.topics:
+            topic = Topic(name, self.next_topic_id, default_value, default_type)
+            self.topics[name] = topic
+            self.next_topic_id += 1
+        return self.topics[name]
+
+    def modify_topic_property(self, name: str, **kwargs):
+        """Modifica qualquer propriedade do tópico (exceto 'id')."""
+        topic = self._get_or_create_topic(name)
+        for key, value in kwargs.items():
+            if key != 'id' and hasattr(topic, key):
+                setattr(topic, key, value)
 
     def accept_connections(self):
         try:
@@ -68,6 +88,10 @@ class server:
                     reply_size = min(len(data), 255)
                     reply_data = data[:reply_size]
                     conn.sendall(struct.pack('B', reply_size) + reply_data)
+                elif command == 'M':
+                    # implementar
+                    # Exemplo de comando de modificação: 'M' + nome(32 bytes) + tipo(16 bytes) + valor(depende do tipo)
+                    None
                 else:
                     print("[rmock_server] unknown command:", command)
 
@@ -86,15 +110,16 @@ class server:
             self.connections.remove(conn)
         print("[rmock_server] closed connection")
 
-    def set_bytes(self, name, value, print_message=False):
+    def set_bytes(self, name, value):
         if not isinstance(value, bytes):
             value = bytes(value) if hasattr(value, '__bytes__') else str(value).encode()
-        self.variables[name] = value
-        if print_message:
-            print(f"[socket_server] set {name} = {len(value)} bytes")
+        value = value[:512]
+        topic = self._get_or_create_topic(name)
+        topic.value = value
 
     def get_bytes(self, name):
-        return self.variables.setdefault(name, b'\x00\x00\x00\x00')
+        topic = self._get_or_create_topic(name, default_type="float", default_value=b'\x00\x00\x00\x00')
+        return topic.value
 
     def get_float(self, name):
         data = self.get_bytes(name)

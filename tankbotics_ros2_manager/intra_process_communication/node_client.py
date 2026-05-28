@@ -3,7 +3,6 @@ import struct
 import time
 import random
 
-from concurrent.futures import ThreadPoolExecutor
 class client:
     def __init__(self, ip=None):
         self.server_port = 5007
@@ -136,18 +135,6 @@ class client:
             print(f"[rmock_client] read_float error: invalid data for variable '{variable_name}'")
         return None
 
-    def read_multiple_floats(self, topics):
-        """Reads multiple float variables from the server in parallel using ThreadPoolExecutor."""
-        n = len(topics)
-        futures = [None] * n
-        with ThreadPoolExecutor(max_workers=n) as executor:
-            for i, topic in enumerate(topics):
-                futures[i] = executor.submit(self.read_float, topic)
-        results = [None] * n
-        for i in range(n):
-            results[i] = futures[i].result()
-        return results
-
     def read_bits(self, variable_name):
         data = self.read_server(variable_name)
         if data and len(data) == 4:
@@ -157,6 +144,11 @@ class client:
                 pass
         return None
 
+    def modify_topic_property(self, variable_name: str, **kwargs):
+        # This method is a placeholder and does not have an implementation in the client.
+        # In a real implementation, this would send a command to the server to modify the topic properties.
+        return False
+    
     def server_reachable(self, server_ip, server_port):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(1.0)
