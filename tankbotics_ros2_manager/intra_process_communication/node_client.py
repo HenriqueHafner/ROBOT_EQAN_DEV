@@ -135,6 +135,21 @@ class client:
             print(f"[rmock_client] read_float error: invalid data for variable '{variable_name}'")
         return None
 
+    def read_multiple_4bytes_topics(self, topics):
+            if not self.connection_handler():
+                return None
+            separator = b'\0'
+            payload = separator.join(name.encode() for name in topics)
+            size = len(payload)
+            packet = b'X' + struct.pack('B', size) + payload
+            self.socket.sendall(packet)
+            size_data = self._recv_exactly(1)
+            if size_data is None:
+                return None
+            total_size = struct.unpack('B', size_data)[0]
+            data = self._recv_exactly(total_size)
+            return data
+
     def topic_define_type(self, variable_name, type_str):
             if not self.connection_handler():
                 return False
@@ -160,4 +175,11 @@ class client:
 
 if __name__ == "__main__":
     node = client()
-    node.set_float("test_float", 1.0)
+    node.set_float("test_float1", 1.234)
+    node.set_float("test_float2", 1.0)
+    node.set_float("test_float3", 1.0)
+    node.set_float("test_float4", 1.0)
+    node.topic_define_type("test_float1", "bits")
+    chunk = node.read_multiple_4bytes_topics(["test_float2", "test_float3"])
+    print("Received chunk:", chunk)
+    input()
