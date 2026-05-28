@@ -3,6 +3,7 @@ import struct
 import time
 import random
 
+from concurrent.futures import ThreadPoolExecutor
 class client:
     def __init__(self, ip=None):
         self.server_port = 5007
@@ -76,17 +77,12 @@ class client:
     def send_server(self, variable_name, data):
         if not self.connection_handler():
             return False
-
-        try:
-            name_bytes = variable_name.encode().ljust(32, b' ')
-            data = bytes(data) if not isinstance(data, bytes) else data
-            size = min(len(data), 255)
-            self.socket.sendall(b'S' + name_bytes + struct.pack('B', size) + data[:size])
-            return True
-        except Exception as e:
-            print("[rmock_client] send_server error:", e)
-            self.connected = False
-            return False
+        name_bytes = variable_name.encode().ljust(32, b' ')
+        data = bytes(data) if not isinstance(data, bytes) else data
+        size = min(len(data), 255)
+        packet = b'S' + name_bytes + struct.pack('B', size) + data[:size]
+        self.socket.sendall(packet)
+        return True
 
     def read_server(self, variable_name):
         if not self.connection_handler():
@@ -134,9 +130,23 @@ class client:
         if data and len(data) == 4:
             try:
                 return struct.unpack('f', data)[0]
-            except:
+            except Exception as e:
                 pass
+        else:
+            print(f"[rmock_client] read_float error: invalid data for variable '{variable_name}'")
         return None
+
+    def read_multiple_floats(self, topics):
+        """Reads multiple float variables from the server in parallel using ThreadPoolExecutor."""
+        n = len(topics)
+        futures = [None] * n
+        with ThreadPoolExecutor(max_workers=n) as executor:
+            for i, topic in enumerate(topics):
+                futures[i] = executor.submit(self.read_float, topic)
+        results = [None] * n
+        for i in range(n):
+            results[i] = futures[i].result()
+        return results
 
     def read_bits(self, variable_name):
         data = self.read_server(variable_name)

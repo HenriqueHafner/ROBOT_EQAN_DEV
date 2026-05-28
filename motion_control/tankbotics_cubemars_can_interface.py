@@ -148,6 +148,12 @@ class can_motor_interface:
         status[0] = status[0] * self.orientation
         status[1] = status[1] * self.orientation
         return status
+    
+    def set_origin(self):
+        if self.joint_model == 1:
+            set_origin_ak70(self.bus, self.motor_id)
+        elif self.joint_model == 2:
+            set_origin_aka10(self.bus, self.motor_id)
 
 def float_to_uint(x, x_min, x_max, bits):
     span = x_max - x_min
@@ -398,11 +404,6 @@ def set_current_brake(can_bus, motor_id, current_a):
         return motor_data
     return None
 
-def set_origin(self):
-    if self.joint_model == 1:
-        set_origin_ak70(self.bus, self.motor_id)
-    elif self.joint_model == 2:
-        set_origin_aka10(self.bus, self.motor_id)
 
 def set_origin_ak70(bus, motor_id):
     send_motor_cmd_ak70(bus, motor_id, p_des=0.0, v_des=0.0, kp=0.0, kd=0.0, t_ff=0.0)

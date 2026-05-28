@@ -1,0 +1,22 @@
+primeiro execute o servidor em qualquer repositório ou em:
+
+./tankbotics_ros2_manager/intra_process_communication/server_ros2_bridge.py
+
+.\tankbotics_ros2_manager\intra_process_communication\server_ros2_bridge.py
+
+depois execute o nó de gamepad:
+
+run_gamepad_node.py
+
+por último execute o mission control:
+
+mission_controll_RPC
+
+Atualmente está no modo emulação do CAN
+para usar o canal can real modifique mission_controll_RPC.py em:
+
+if __name__ == "__main__":
+    mission = mission_controller(use_emulator=True)
+    mission.run()
+
+faça emulator=False

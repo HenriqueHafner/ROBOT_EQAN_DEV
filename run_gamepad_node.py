@@ -6,8 +6,8 @@ module_folder = os.path.dirname(gamepad_node.__file__)
 sys.path.insert(0, module_folder)
 
 gamepad_node = gamepad_node.gamepad_handler()
-# gamepad_node.setup_controller_by_name("xbox360_wireless")
-gamepad_node.setup_controller_by_name("logitech_hotas_stick")
+gamepad_node.setup_controller_by_name("xbox360_wireless")
+# gamepad_node.setup_controller_by_name("logitech_hotas_stick")
 
 try:
     while True:

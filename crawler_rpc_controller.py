@@ -3,9 +3,10 @@ from motion_control import tankbotics_cubemars_can_interface_emulator
 from motion_control import tankbotics_cubemars_can_interface
 
 class crawler_rpc_controller:
-    maximum_position = 35000.0
+    acutators_list = []
+    maximum_position = 0
     maximum_electrical_rpm = 10000
-    maximum_acceleration = 300000
+    maximum_acceleration = 6000
     maximum_position_step = 5.0
     linear_gain = 1.0
     rotational_gain = 1.0
@@ -27,6 +28,7 @@ class crawler_rpc_controller:
         self.R_R.offset_hold_position = 0.0
         self.R_F = self.create_and_configure_actuator(model_name="aka10", motor_id=4, orientation=-1)
         self.R_F.offset_hold_position = 0.0
+        self.acutators_named_list = [(self.L_R, "LR"), (self.L_F, "LF"), (self.R_R, "RR"), (self.R_F, "RF")]
 
     def create_and_configure_actuator(self, model_name, motor_id, orientation):
         if self.use_emulator:
