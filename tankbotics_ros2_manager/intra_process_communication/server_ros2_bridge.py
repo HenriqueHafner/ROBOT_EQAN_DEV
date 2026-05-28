@@ -65,28 +65,28 @@ class server:
                     continue
                 var_name = name_bytes.decode(errors='ignore').strip()
 
-                if command == 'T':
+                if command == 'G':
+                    data = self.get_bytes(var_name)
+                    reply_size = min(len(data), 255)
+                    reply_data = data[:reply_size]
+                    conn.sendall(struct.pack('B', reply_size) + reply_data)
+
+                elif command == 'T':
                     type_bytes = conn.recv(16)
                     type_str = type_bytes.decode(errors='ignore').strip()
                     topic = self._get_or_create_topic(var_name)
                     topic.type = type_str
                     continue
 
-                size_byte = conn.recv(1)
-                if not size_byte:
-                    self._finish_connection(conn)
-                    continue
-                payload_size = size_byte[0]
-
-                payload = conn.recv(payload_size) if payload_size > 0 else b''
-
-                if command == 'S':
+                elif command == 'S':
+                    size_byte = conn.recv(1)
+                    if not size_byte:
+                        self._finish_connection(conn)
+                        continue
+                    payload_size = size_byte[0]
+                    payload = conn.recv(payload_size) if payload_size > 0 else b''
                     self.set_bytes(var_name, payload)
-                elif command == 'G':
-                    data = self.get_bytes(var_name)
-                    reply_size = min(len(data), 255)
-                    reply_data = data[:reply_size]
-                    conn.sendall(struct.pack('B', reply_size) + reply_data)
+
                 else:
                     print("[rmock_server] unknown command:", command)
 
@@ -168,32 +168,42 @@ class server:
         current_timestamp = time.monotonic()
         if current_timestamp - self.print_last_timestamp >= self.print_interval:
             time_cost_line = [("timecost(us)", self.time_cost)]
-            data = time_cost_line + [(t.name, t.value) for t in self.topics.values()]
-            current_line_count = len(data)
+            data = [(t.name, t) for t in self.topics.values()]
+            current_line_count = len(data+1) # +1 for time cost line
             self.max_line_count = max(self.max_line_count, current_line_count)
-            lines = []
-            for name, value in data:
+            lines = [time_cost_line]
+            for name, topic in data:
                 truncated_name = name[:16].ljust(16)
-                if isinstance(value, bytes):
-                    length = len(value)
-                    if length == 1:
-                        formatted_value = f"{value[0]:3d}"
-                    elif length in (2, 3):
-                        int_val = int.from_bytes(value, 'big')
-                        bits = length * 8
-                        formatted_value = f"{int_val:0{bits}b}"
-                    elif length == 4:
-                        try:
+                value = topic.value
+                topic_type = getattr(topic, 'type', 'float').strip().lower()
+                if topic_type == 'float':
+                    try:
+                        if isinstance(value, bytes) and len(value) == 4:
                             fval = struct.unpack('f', value)[0]
-                            formatted_value = self.formatFloat(fval)
-                        except:
-                            formatted_value = ' '.join(f'{b:02x}' for b in value)
-                    else:
-                        formatted_value = ' '.join(f'{b:02x}' for b in value) if value else '<empty>'
-                elif isinstance(value, float):
-                    formatted_value = self.formatFloat(value)
+                        else:
+                            fval = float(value)
+                        formatted_value = self.formatFloat(fval)
+                    except:
+                        formatted_value = ' '.join(f'{b:02x}' for b in value) if isinstance(value, bytes) else str(value)
+                elif topic_type in ('int32', 'int', 'i32'):
+                    try:
+                        if isinstance(value, bytes):
+                            int_val = int.from_bytes(value, 'big')
+                        else:
+                            int_val = int(value)
+                        formatted_value = f"{int_val}"
+                    except:
+                        formatted_value = str(value)
+                elif topic_type in ('string', 'str'):
+                    try:
+                        formatted_value = value.decode('utf-8').strip()
+                    except:
+                        formatted_value = str(value)
                 else:
-                    formatted_value = self.format_binary(value)
+                    if isinstance(value, bytes):
+                        formatted_value = ' '.join(f'{b:02x}' for b in value)
+                    else:
+                        formatted_value = str(value)
                 line = f"{truncated_name} : {formatted_value}"
                 lines.append(line)
             lines += [""] * (self.max_line_count - current_line_count)

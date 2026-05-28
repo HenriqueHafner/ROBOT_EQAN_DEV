@@ -135,15 +135,6 @@ class client:
             print(f"[rmock_client] read_float error: invalid data for variable '{variable_name}'")
         return None
 
-    def read_bits(self, variable_name):
-        data = self.read_server(variable_name)
-        if data and len(data) == 4:
-            try:
-                return struct.unpack('i', data)[0]
-            except:
-                pass
-        return None
-
     def topic_define_type(self, variable_name, type_str):
             if not self.connection_handler():
                 return False
