@@ -8,14 +8,14 @@ class Topic:
     def __init__(self, name: str, topic_id: int, value: bytes = b'\x00\x00\x00\x00', type_str: str = "float"):
         self.name = name
         self.id = topic_id
-        self.value = value[:512]          # limite máximo
+        self.value = value[:512]
         self.type = type_str[:16]
 
 class server:
     def __init__(self, ip=None):
         self.host = ip if ip else '0.0.0.0'
         self.port = 5007
-        self.topics = {}                  # name -> Topic
+        self.topics = {}
         self.next_topic_id = 1000
         self.connections = []
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -33,19 +33,11 @@ class server:
         self.print_interval = 1.0 / 30
 
     def _get_or_create_topic(self, name: str, default_type: str = "float", default_value: bytes = b'\x00\x00\x00\x00') -> Topic:
-        """Substitui o antigo setdefault com lógica completa de criação."""
         if name not in self.topics:
             topic = Topic(name, self.next_topic_id, default_value, default_type)
             self.topics[name] = topic
             self.next_topic_id += 1
         return self.topics[name]
-
-    def modify_topic_property(self, name: str, **kwargs):
-        """Modifica qualquer propriedade do tópico (exceto 'id')."""
-        topic = self._get_or_create_topic(name)
-        for key, value in kwargs.items():
-            if key != 'id' and hasattr(topic, key):
-                setattr(topic, key, value)
 
     def accept_connections(self):
         try:
@@ -73,6 +65,13 @@ class server:
                     continue
                 var_name = name_bytes.decode(errors='ignore').strip()
 
+                if command == 'T':
+                    type_bytes = conn.recv(16)
+                    type_str = type_bytes.decode(errors='ignore').strip()
+                    topic = self._get_or_create_topic(var_name)
+                    topic.type = type_str
+                    continue
+
                 size_byte = conn.recv(1)
                 if not size_byte:
                     self._finish_connection(conn)
@@ -88,10 +87,6 @@ class server:
                     reply_size = min(len(data), 255)
                     reply_data = data[:reply_size]
                     conn.sendall(struct.pack('B', reply_size) + reply_data)
-                elif command == 'M':
-                    # implementar
-                    # Exemplo de comando de modificação: 'M' + nome(32 bytes) + tipo(16 bytes) + valor(depende do tipo)
-                    None
                 else:
                     print("[rmock_server] unknown command:", command)
 
@@ -173,7 +168,7 @@ class server:
         current_timestamp = time.monotonic()
         if current_timestamp - self.print_last_timestamp >= self.print_interval:
             time_cost_line = [("timecost(us)", self.time_cost)]
-            data = time_cost_line + list(self.variables.items())
+            data = time_cost_line + [(t.name, t.value) for t in self.topics.values()]
             current_line_count = len(data)
             self.max_line_count = max(self.max_line_count, current_line_count)
             lines = []
@@ -205,7 +200,7 @@ class server:
             content_string = "\n".join(lines) + "\n" if lines else ""
             sys.stdout.write("\033[H")
             for _ in range(self.max_line_count):
-                sys.stdout.write("\033[2K\033[1B")
+                sys.stdout.write("\033[2K\033[1B]")
             sys.stdout.write("\033[H")
             sys.stdout.write(content_string)
             sys.stdout.flush()
@@ -221,14 +216,11 @@ class server:
                     self.print_variables()
                     self.probe_time_cost()
                 except Exception as e:
-                    current_time = time.monotonic()
-                    if current_time - last_error_print >= 0.2:
+                    if time.monotonic() - last_error_print >= 0.2:
                         print("[rmock_server] error in loop:", e)
-                        last_error_print = current_time
-                    sys.stdout.write("\033[2J\033[H")
-                    sys.stdout.flush()
+                        last_error_print = time.monotonic()
         except KeyboardInterrupt:
-            print("\n[rmock_server] stopped by user (KeyboardInterrupt)")
+            print("\n[rmock_server] stopped by user")
 
 if __name__ == "__main__":
     server_instance = server()
