@@ -59,6 +59,34 @@ class server:
 
                 command = command_byte.decode(errors='ignore')
 
+                if command == 'X':
+                    size_data = conn.recv(1)
+                    if not size_data:
+                        self._finish_connection(conn)
+                        continue
+                    payload_size = struct.unpack('B', size_data)[0]
+                    payload = conn.recv(payload_size)
+                    topic_names = [
+                        name.decode(errors='ignore').strip()
+                        for name in payload.split(b'\0')
+                        if name
+                    ]
+                    concatenated = b''
+                    for name in topic_names:
+                        data = self.get_bytes(name)
+                        if len(data) == 4:
+                            concatenated += data
+                        else:
+                            concatenated += b'\x00\x00\x00\x00'
+                    expected_size = 4 * len(topic_names)
+                    if len(concatenated) == expected_size:
+                        reply_size = min(len(concatenated), 255)
+                        conn.sendall(struct.pack('B', reply_size) + concatenated[:reply_size])
+                    else:
+                        zero_data = b'\x00' * expected_size
+                        conn.sendall(struct.pack('B', len(zero_data)) + zero_data)
+                    continue
+
                 name_bytes = conn.recv(32)
                 if len(name_bytes) < 32:
                     self._finish_connection(conn)
@@ -86,28 +114,6 @@ class server:
                     payload_size = size_byte[0]
                     payload = conn.recv(payload_size) if payload_size > 0 else b''
                     self.set_bytes(var_name, payload)
-                elif command == 'X':
-                    size_data = conn.recv(1)
-                    if not size_data:
-                        self._finish_connection(conn)
-                        continue
-                    payload_size = struct.unpack('B', size_data)[0]
-                    payload = conn.recv(payload_size)
-                    topic_names = [name.decode(errors='ignore').strip() 
-                                   for name in payload.split(b'\0') if name]
-                    concatenated = b''
-                    for name in topic_names:
-                        data = self.get_bytes(name)
-                        if len(data) == 4:
-                            concatenated += data
-                        else:
-                            concatenated += b'\x00\x00\x00\x00'
-                    if len(concatenated) == 4 * len(topic_names):
-                        reply_size = min(len(concatenated), 255)
-                        conn.sendall(struct.pack('B', reply_size) + concatenated[:reply_size])
-                    else:
-                        zero_data = b'\x00' * (4 * len(topic_names))
-                        conn.sendall(struct.pack('B', len(zero_data)) + zero_data)
                 else:
                     print("[rmock_server] unknown command:", command)
 
